@@ -38,6 +38,15 @@ Salud: `http://127.0.0.1:8765/health` (`asr_ready` debe ser `true`).
 | `TTS_VOICE` | `en-US-ChristopherNeural` |
 | `WHISPER_MODEL_SIZE` | `tiny.en` |
 
+## Versión web: Hugging Face Space (`hf_space/`)
+La misma idea en un Space Docker sobre CPU gratis, con Gradio: Whisper tiny + Vertex-Core (GGUF en llama-server) + Edge TTS por frases, y **cámara opcional** con SmolVLM2-500M como ojos. Todo en unos 4 GB de RAM.
+En vivo: https://huggingface.co/spaces/Denisijcu/vertex-core-voice. Detalles y latencias en `hf_space/README.md`.
+
+Para subir cambios, desde `E:\vertex-voice-mcp\hf_space`:
+```powershell
+..\.venv\Scripts\python.exe -c "from huggingface_hub import upload_folder; upload_folder(repo_id='Denisijcu/vertex-core-voice', repo_type='space', folder_path='.')"
+```
+
 ## Protocolo WebSocket `/ws/voice`
 Auth: `?token=...` o header `Authorization: Bearer ...`.
 Cliente → servidor: frames binarios PCM 16 kHz, 16-bit, mono (≤ 8192 bytes).
