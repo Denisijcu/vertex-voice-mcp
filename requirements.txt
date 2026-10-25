@@ -3,7 +3,13 @@ uvicorn[standard]>=0.30.0
 websockets>=13.0
 pydantic>=2.8.0
 pydantic-settings>=2.4.0
+python-dotenv>=1.0.0
 numpy>=1.26.4
 httpx>=0.27.0
 faster-whisper>=1.0.3
 soundfile>=0.12.1
+edge-tts>=7.0.0
+miniaudio>=1.59
+
+# Solo para test/live_mic.py
+sounddevice>=0.4.6
