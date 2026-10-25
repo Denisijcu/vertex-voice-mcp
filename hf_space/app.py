@@ -21,6 +21,7 @@ import httpx
 from huggingface_hub import hf_hub_download
 
 from pipeline import SYSTEM_PROMPT, TTS_SR, VoicePipeline, guess_lang, to_16k_mono
+from router import route  # músculos: clima, hora, noticias, Wikipedia (mcp_servers/)
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 log = logging.getLogger("app")
@@ -147,10 +148,15 @@ async def run_turn(user_text, lang, history, t0, t_asr, look, frame):
     elif look:
         parts.append("sin cámara")
 
+    # Músculos: si la pregunta es de clima, hora, noticias o enciclopedia, trae datos reales
+    tool = await route(user_text)
+    if tool is not None:
+        parts.append(f"💪 {tool.tool} {tool.latency_ms:.0f} ms" + ("" if tool.ok else " ❌ falló"))
+
     yield user_text, "", gr.skip(), " · ".join(parts + ["pensando…"]), (seen or ""), history
 
     reply, first_audio_ms = "", None
-    async for clause in PIPE.stream_reply(user_text, history, seen, lang):
+    async for clause in PIPE.stream_reply(user_text, history, seen, lang, tool):
         reply = f"{reply} {clause}".strip()
         yield gr.skip(), reply, gr.skip(), gr.skip(), gr.skip(), gr.skip()
 
@@ -203,7 +209,9 @@ with gr.Blocks(title="Vertex-Core Voice") as demo:
         "[Denisijcu/vertex-core-gguf](https://huggingface.co/Denisijcu/vertex-core-gguf) "
         "(Qwen3-4B afinado, Q4_K_M). Ojos: "
         "[SmolVLM2-500M](https://huggingface.co/ggml-org/SmolVLM2-500M-Video-Instruct-GGUF). "
-        "Todo en **CPU** con llama.cpp. Habla o escribe en español o inglés."
+        "Todo en **CPU** con llama.cpp. Habla o escribe en español o inglés.\n\n"
+        "💪 **Músculos:** pregúntale por el clima, la hora, las noticias o cualquier tema de Wikipedia "
+        "(*¿Qué tiempo hace en La Habana?*, *What's the news?*, *¿Quién fue José Martí?*)."
     )
     with gr.Row():
         mic = gr.Audio(sources=["microphone"], type="numpy", label="Habla (se envía al parar)")

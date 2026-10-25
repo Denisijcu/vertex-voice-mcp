@@ -7,7 +7,7 @@ sdk: docker
 app_port: 7860
 pinned: false
 license: apache-2.0
-short_description: Agente de voz Vertex-Core que habla y mira, en CPU
+short_description: Agente de voz Vertex-Core que habla, mira y consulta, en CPU
 models:
 - Denisijcu/vertex-core-gguf
 - ggml-org/SmolVLM2-500M-Video-Instruct-GGUF
@@ -16,7 +16,7 @@ models:
 
 # 🎙️👁️ Vertex-Core Voice
 
-Agente de voz de **Vertex Coders LLC**. Le hablas o le escribes en español o inglés, te contesta con voz y, si quieres, **mira por tu webcam**.
+Agente de voz de **Vertex Coders LLC**. Le hablas o le escribes en español o inglés, te contesta con voz y, si quieres, **mira por tu webcam**. Además tiene **músculos**: consulta el clima, la hora, las noticias y Wikipedia en tiempo real.
 Todo corre en el **CPU Basic gratis** de Hugging Face (2 vCPU, sin GPU), con unos **4 GB de RAM**. GPU-poor and proud 🤗.
 
 ## Cómo funciona
@@ -33,9 +33,11 @@ Todo corre en el **CPU Basic gratis** de Hugging Face (2 vCPU, sin GPU), con uno
 | **Cerebro** | [Denisijcu/vertex-core-gguf](https://huggingface.co/Denisijcu/vertex-core-gguf), Qwen3-4B-Instruct-2507 afinado con QLoRA | GGUF Q4_K_M (2.5 GB) en `llama-server` de llama.cpp, puerto 8080 |
 | **Ojos** | [SmolVLM2-500M](https://huggingface.co/ggml-org/SmolVLM2-500M-Video-Instruct-GGUF) | Q8 + mmproj (~550 MB) en un segundo `llama-server`, puerto 8081 |
 | **Voz** | Edge Neural TTS (Alonso para español, Christopher para inglés) | Frase por frase: empieza a hablar antes de terminar de pensar |
+| **Músculos** | Servidores MCP propios: Open-Meteo (clima), zoneinfo (hora), Google News RSS (noticias), API de Wikimedia | Un router con reglas es/en decide antes de pensar, y el dato real le llega al cerebro como contexto. Gratis y sin claves. |
 
 - La respuesta del modelo se corta por cláusulas (punto, signo de interrogación o coma en frases largas), y cada cláusula se convierte en voz en cuanto está lista.
 - **La cámara es opcional.** Viene cerrada y apagada, y el navegador no pide permiso hasta que la abres. Con "👁️ Mirar" activado, toma una foto por pregunta (a 384 px), SmolVLM2 la describe en una frase y Vertex-Core la recibe como lo que está viendo. Responde en primera persona y se acuerda de lo que vio durante la conversación.
+- **Los músculos** son los mismos servidores MCP del proyecto local (`mcp_servers/`). Aquí el router los llama directo, en el mismo proceso, y en local también sirven por stdio a LM Studio. Ejemplos: *¿Qué tiempo hace en La Habana?*, *Will it rain tomorrow?*, *¿Qué hora es en Tokio?*, *Noticias de Hugging Face*, *¿Quién fue José Martí?*. Las métricas muestran el músculo usado (`💪 weather_now 1400 ms`).
 - No se compila nada: la imagen Docker parte de la oficial `ghcr.io/ggml-org/llama.cpp:server`.
 - Al arrancar, el Space detecta los CPUs reales del contenedor y calienta el modelo, así el system prompt queda ya en caché.
 

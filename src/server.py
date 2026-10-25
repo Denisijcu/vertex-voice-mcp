@@ -11,6 +11,7 @@ from starlette.websockets import WebSocketState
 from src.audio_stream import UtteranceBuffer
 from src.config import settings
 from src.inference import LocalVoicePipeline
+from src.router import route
 from src.vad import EnergyVAD
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
@@ -111,9 +112,20 @@ async def voice_stream_endpoint(websocket: WebSocket, token: str = Query(default
                 "asr_latency_ms": round(t_asr, 1),
             })
 
+            # Paso 1.5: Músculos (router de herramientas MCP). None = el modelo contesta solo.
+            tool = await route(transcript)
+            if tool is not None:
+                await _send_json(websocket, {
+                    "event": "tool_call",
+                    "tool": tool.tool,
+                    "args": tool.args,
+                    "tool_latency_ms": round(tool.latency_ms, 1),
+                    "ok": tool.ok,
+                })
+
             # Paso 2 & 3: Streaming LLM -> Streaming TTS
             first_chunk = True
-            async for clause in pipeline.stream_llm_response(transcript):
+            async for clause in pipeline.stream_llm_response(transcript, tool):
                 await _send_json(websocket, {"event": "agent_text_chunk", "text": clause})
                 tts_pcm = await pipeline.synthesize_speech_chunk(clause)
 

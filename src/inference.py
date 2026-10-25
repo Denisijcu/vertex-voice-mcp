@@ -141,7 +141,19 @@ class LocalVoicePipeline:
         return await asyncio.to_thread(self._run_stt_sync, pcm_bytes)
 
     # ------------------------------------------------------------------ LLM
-    async def stream_llm_response(self, prompt: str):
+    async def stream_llm_response(self, prompt: str, tool=None):
+        """tool: ToolResult del router (o None). Si viene, sus datos van como contexto
+        y el modelo los cuenta con sus palabras."""
+        user_content = prompt
+        max_tokens = 90
+        if tool is not None:
+            user_content = (
+                f"[TOOL {tool.tool} — real, up-to-date data]\n{tool.text}\n[/TOOL]\n"
+                f"Answer the user's question below using ONLY the tool data above. "
+                f"Answer in the same language as the question, in 2 or 3 short spoken sentences. "
+                f"Never read URLs or mention the tool.\n\n{prompt}"
+            )
+            max_tokens = 160  # noticias y pronósticos necesitan algo más de espacio
         payload = {
             "model": settings.LLM_MODEL_NAME,
             "messages": [
@@ -152,14 +164,20 @@ class LocalVoicePipeline:
                         "You are Vertex-Core, the proprietary AI voice agent architected by "
                         "Denis Sanchez Leyva at Vertex Coders LLC in Miami, Florida. "
                         "Never say you are Qwen or developed by Alibaba/Tongyi Lab. "
-                        "Reply in 1 or 2 crisp, natural spoken sentences without markdown."
+                        "Reply in 1 or 2 crisp, natural spoken sentences without markdown. "
+                        "You ARE connected to live tools built by Vertex Coders (MCP servers): weather, "
+                        "local time, news headlines and Wikipedia. When a message contains [TOOL ...] data, "
+                        "that is real information you just looked up: use it confidently. "
+                        "Never say you have no internet access or that you can't read Wikipedia. "
+                        "If a question needs live data and no [TOOL] data came with it, invite the user "
+                        "to ask it directly, like 'What's the weather in Miami?' or 'Who was Alan Turing?'."
                     ),
                 },
-                {"role": "user", "content": prompt},
+                {"role": "user", "content": user_content},
             ],
             "stream": True,
             "temperature": 0.25,
-            "max_tokens": 90,
+            "max_tokens": max_tokens,
         }
 
         yielded_any = False

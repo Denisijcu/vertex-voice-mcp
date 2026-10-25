@@ -38,6 +38,24 @@ Salud: `http://127.0.0.1:8765/health` (`asr_ready` debe ser `true`).
 | `TTS_VOICE` | `en-US-ChristopherNeural` |
 | `WHISPER_MODEL_SIZE` | `tiny.en` |
 
+## Músculos: router de herramientas MCP (`src/router.py`)
+Antes de pensar, cada frase pasa por un router ligero, con reglas en español e inglés, que decide si hace falta un músculo de `mcp_servers/`:
+
+| Pregunta | Herramienta |
+|---|---|
+| "¿Qué tiempo hace en La Habana?" / "Will it rain tomorrow?" | `weather_now` / `weather_forecast` |
+| "¿Qué hora es en Tokio?" / "¿Cuántas horas de diferencia hay con Madrid?" | `current_time` / `time_difference` |
+| "¿Qué noticias hay?" / "Noticias de Hugging Face" | `news_headlines` / `news_search` |
+| "¿Quién fue José Martí?" / "Tell me about Alan Turing" | `wiki_lookup` |
+
+El resultado va a Vertex-Core como contexto `[TOOL ...]` y él lo cuenta con su voz. Si ninguna regla encaja, contesta solo, como siempre. El cliente recibe el evento `tool_call` con la herramienta, los argumentos y la latencia.
+
+```powershell
+# Probar el router sin servidor ni LM Studio (desde E:\vertex-voice-mcp)
+.venv\Scripts\python.exe test\test_router.py          # qué herramienta elige
+.venv\Scripts\python.exe test\test_router.py --run    # y qué datos le llegan al modelo
+```
+
 ## Versión web: Hugging Face Space (`hf_space/`)
 La misma idea en un Space Docker sobre CPU gratis, con Gradio: Whisper tiny + Vertex-Core (GGUF en llama-server) + Edge TTS por frases, y **cámara opcional** con SmolVLM2-500M como ojos. Todo en unos 4 GB de RAM.
 En vivo: https://huggingface.co/spaces/Denisijcu/vertex-core-voice. Detalles y latencias en `hf_space/README.md`.
@@ -51,7 +69,7 @@ Para subir cambios, desde `E:\vertex-voice-mcp\hf_space`:
 Auth: `?token=...` o header `Authorization: Bearer ...`.
 Cliente → servidor: frames binarios PCM 16 kHz, 16-bit, mono (≤ 8192 bytes).
 Servidor → cliente: frames binarios PCM (voz del agente) y eventos JSON:
-`asr_transcript`, `agent_text_chunk`, `metrics`, `turn_complete`, `turn_discarded`, `barge_in_interrupted`, `error`.
+`asr_transcript`, `tool_call`, `agent_text_chunk`, `metrics`, `turn_complete`, `turn_discarded`, `barge_in_interrupted`, `error`.
 
 
 # Vertex Voice Agent MCP (`vertex-voice-mcp`)

@@ -134,6 +134,8 @@ async def run_live_voice_agent():
                     if ev == "asr_transcript":
                         clear_speaker_buffer()
                         print(f"\n🧑 [TÚ ({data.get('asr_latency_ms')}ms)]: {data.get('text')}")
+                    elif ev == "tool_call":
+                        print(f"💪 [MÚSCULO]: {data.get('tool')}({data.get('args')}) — {data.get('tool_latency_ms')} ms")
                     elif ev == "agent_text_chunk":
                         print(f"🤖 [VERTEX-CORE]: {data.get('text')}")
                     elif ev == "metrics":

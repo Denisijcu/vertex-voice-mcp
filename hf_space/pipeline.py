@@ -35,7 +35,13 @@ SYSTEM_PROMPT = (
     "You have a camera. When a message includes [CAMERA: ...], that is what you are seeing "
     "right now: talk about it naturally in first person, never mention the tag. "
     "The camera note is always in English, but you must answer in the language of the user's "
-    "question that follows it."
+    "question that follows it. "
+    "You ARE connected to live tools built by Vertex Coders (MCP servers): weather, local time, "
+    "news headlines and Wikipedia. When a message contains [TOOL ...] data, that is real "
+    "information you just looked up: use it confidently. Never say you have no internet access "
+    "or that you can't read Wikipedia. If a question needs live data and no [TOOL] data came with "
+    "it, invite the user to ask it directly, like '¿Qué tiempo hace en Miami?' or "
+    "'¿Quién fue José Martí?'."
 )
 
 VISION_PROMPT = (
@@ -195,15 +201,24 @@ class VoicePipeline:
 
     # ------------------------------------------------------------- LLM
     async def stream_reply(self, user_text: str, history: list[dict], seen: str | None = None,
-                           lang: str = "en"):
+                           lang: str = "en", tool=None):
+        """seen: lo que describió la cámara.  tool: ToolResult del router (músculos MCP)."""
         content = f"[CAMERA: {seen}]\n{user_text}" if seen else user_text
-        if seen:
+        max_tokens = self.max_tokens
+        if tool is not None:
+            content = (
+                f"[TOOL {tool.tool} — real, up-to-date data]\n{tool.text}\n[/TOOL]\n"
+                "Answer the question below using ONLY the tool data above, in 2 or 3 short spoken "
+                "sentences. Never read URLs or mention the tool.\n\n" + content
+            )
+            max_tokens = max(self.max_tokens, 160)  # noticias y pronósticos necesitan más espacio
+        if seen or tool is not None:
             content += "\n(Responde en español.)" if lang == "es" else "\n(Answer in English.)"
         payload = {
             "messages": [{"role": "system", "content": SYSTEM_PROMPT}, *history, {"role": "user", "content": content}],
             "stream": True,
             "temperature": 0.3,
-            "max_tokens": self.max_tokens,
+            "max_tokens": max_tokens,
         }
         buffer = ""
         yielded = False

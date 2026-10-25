@@ -5,3 +5,5 @@ numpy>=1.26.4
 faster-whisper>=1.0.3
 edge-tts>=7.0.0
 miniaudio>=1.59
+# Zonas horarias para el músculo de hora (la imagen base puede no traerlas)
+tzdata
